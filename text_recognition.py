@@ -48,7 +48,7 @@ ap.add_argument("-i", "--image", type=str,
 	help="path to input image")
 ap.add_argument("-east", "--east", type=str,
 	help="path to input EAST text detector")
-ap.add_argument("-c", "--min-confidence", type=float, default=0.5,
+ap.add_argument("-c", "--min-confidence", type=float, default=0.7,
 	help="minimum probability required to inspect a region")
 ap.add_argument("-w", "--width", type=int, default=320,
 	help="nearest multiple of 32 for resized width")
@@ -63,7 +63,7 @@ image = cv2.imread(args["image"])
 orig = image.copy()
 (origH, origW) = image.shape[:2]
 
-(newW, newH) = (args["width"], args["height"])
+(newW, newH) = (32*(origW//32), 32*(origH//32))
 
 rW = origW / float(newW)
 rH = origH / float(newH)
