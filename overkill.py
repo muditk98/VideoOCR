@@ -12,11 +12,11 @@ def apply_thresholds(orig):
 	gauss_blurs = {
 		9: cv2.GaussianBlur(img, (9, 9), 0),
 		7: cv2.GaussianBlur(img, (7, 7), 0),
-		5: cv2.GaussianBlur(img, (5, 5), 0)
+		5: cv2.GaussianBlur(img, (5, 5), 0),
 	}
 	median_blurs = {
 		5: cv2.medianBlur(img, 5),
-		3: cv2.medianBlur(img, 3)
+		3: cv2.medianBlur(img, 3),
 	}
 	threshes = [
 		cv2.threshold(gauss_blurs[9], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
@@ -33,13 +33,13 @@ def apply_thresholds(orig):
 	]
 
 	titles = [
-		'gaus9+otsu',
-		'guas7+otsu',
-		'guas5+otsu',
+		'gauss9+otsu',
+		'gauss7+otsu',
+		'gauss5+otsu',
 		'median5+otsu',
 		'median3+otsu',
-		'gaus5+adagaus 31 2',
-		'gaus3+adagaus 31 2',
+		'gauss5+ada_gauss 31 2',
+		'gauss3+ada_gauss 31 2',
 	]
 	return threshes, titles
 
