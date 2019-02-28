@@ -10,22 +10,23 @@ from pytesseract import Output
 def apply_thresholds(orig):
 	img = cv2.cvtColor(orig, cv2.COLOR_BGR2GRAY)
 	gauss_blurs = {
-		9: cv2.GaussianBlur(img, (9, 9), 0),
-		7: cv2.GaussianBlur(img, (7, 7), 0),
+		# 9: cv2.GaussianBlur(img, (9, 9), 0),
+		# 7: cv2.GaussianBlur(img, (7, 7), 0),
 		5: cv2.GaussianBlur(img, (5, 5), 0),
 	}
 	median_blurs = {
-		5: cv2.medianBlur(img, 5),
+		# 5: cv2.medianBlur(img, 5),
 		3: cv2.medianBlur(img, 3),
 	}
 	threshes = [
-		cv2.threshold(gauss_blurs[9], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
-		cv2.threshold(gauss_blurs[7], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
+		# cv2.threshold(gauss_blurs[9], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
+		# cv2.threshold(gauss_blurs[7], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
 		cv2.threshold(gauss_blurs[5], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
-		cv2.threshold(median_blurs[5], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
+		# cv2.threshold(median_blurs[5], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
 		cv2.threshold(median_blurs[3], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
-		cv2.adaptiveThreshold(gauss_blurs[5], 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2),
-		cv2.adaptiveThreshold(median_blurs[3], 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2),
+		cv2.adaptiveThreshold(gauss_blurs[5], 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2),
+		cv2.adaptiveThreshold(median_blurs[3], 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2),
+		img
 		# cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1],
 		# cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)[1],
 		# cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)[1],
@@ -33,13 +34,14 @@ def apply_thresholds(orig):
 	]
 
 	titles = [
-		'gauss9+otsu',
-		'gauss7+otsu',
+		# 'gauss9+otsu',
+		# 'gauss7+otsu',
 		'gauss5+otsu',
-		'median5+otsu',
+		# 'median5+otsu',
 		'median3+otsu',
-		'gauss5+ada_gauss 31 2',
-		'gauss3+ada_gauss 31 2',
+		'gauss5+ada_gauss 11 2',
+		'gauss3+ada_gauss 11 2',
+		'unchanged'
 	]
 	return threshes, titles
 
@@ -48,15 +50,23 @@ def tess(image):
 	d = pytesseract.image_to_data(image, output_type=Output.DICT, lang=args['lang'])
 	image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 	n_boxes = len(d['level'])
+	results = []
+	confidences = []
+	rectangles = []
 	for i in range(n_boxes):
-		if int(d['conf'][i]) < 80 or not d['text'][i] or d['text'][i].isspace():
+		if int(d['conf'][i])/100.0 < args['min_confidence'] or not d['text'][i] or d['text'][i].isspace():
 			continue
-		(x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
-		cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-		cv2.putText(image, d['text'][i], (x, y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+		# (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+		rectangle = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+		rectangles.append(rectangle)
+		confidences.append(int(d['conf'][i])/100.0)
+		results.append(d['text'][i])
+		# cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+		# cv2.putText(image, d['text'][i], (x, y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
 		# cv2.putText(image, translator.translate(d['text'][i]).text, (x, y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
-		print(str(i) + ':' + d['text'][i])
-	return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+		print(str(i) + ': ' + d['text'][i] + ' conf: ' + str(d['conf'][i]) + 'rect: ' + str(rectangle))
+	# return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+	return results, rectangles, confidences
 
 
 def decode_predictions(scores, geometry):
@@ -99,7 +109,7 @@ def decode_predictions(scores, geometry):
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", type=str, help="path to input image")
 ap.add_argument("-east", "--east", type=str, help="path to input EAST text detector")
-ap.add_argument("-c", "--min-confidence", type=float, default=0.7, help="minimum confidence")
+ap.add_argument("-c", "--min-confidence", type=float, default=0.85, help="minimum confidence")
 ap.add_argument("-w", "--width", type=int, default=320, help="nearest multiple of 32 for re-sized width")
 ap.add_argument("-e", "--height", type=int, default=320, help="nearest multiple of 32 for re-sized height")
 ap.add_argument("-p", "--padding", type=float, default=0.0, help="amount of padding to add to each border of ROI")
@@ -175,14 +185,35 @@ def __main__():
 
 		roi = orig[start_y:end_y, start_x:end_x]
 		threshold_images, titles = apply_thresholds(roi)
+		results = []
+		confidences = []
+		rectangles = []
 		for i in range(len(threshold_images)):
-			img = tess(threshold_images[i])
+			# img = tess(threshold_images[i])
 			# plt.subplot(3,4,i+1)
-			plt.imshow(img)
-			plt.title(titles[i])
-			plt.show()
+
+			# plt.imshow(img)
+			# plt.title(titles[i])
+			# plt.show()
+
 			# plt.xticks([]), plt.yticks([])
-			print('-' * 10)
+			result, rectangle, confidence = tess(threshold_images[i])
+			results.extend(result)
+			confidences.extend(confidence)
+			rectangles.extend(rectangle)
+			# print('-' * 10)
+		if len(results):
+			selected = max(zip(confidences, results, rectangles), key=lambda x: x[0])
+			x, y, w, h = selected[2]
+			text = selected[1]
+			# correct_rectangle = (start_y+y:start_y+y+h, start_x+x:start_x+x+w)
+			# image[]
+			cv2.rectangle(image, (start_x+x, start_y+y), (start_x+x+w, start_y+y+h), (0, 255, 0), 2)
+			cv2.putText(image, text, (start_x+x, start_y+y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+			# cv2.putText(image, translator.translate(d['text'][i]).text, (x, y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
+
+	plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+	plt.show()
 
 
 if __name__ == '__main__':
