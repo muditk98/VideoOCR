@@ -7,11 +7,11 @@ from matplotlib import pyplot as plt
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", type=str, help="path to input image")
-ap.add_argument("-east", "--east", type=str, help="path to input EAST text detector")
-ap.add_argument("-c", "--min-confidence", type=float, default=0.85, help="minimum confidence")
+ap.add_argument("-east", "--east", default='frozen_east_text_detection.pb', type=str, help="path for input east")
+ap.add_argument("-c", "--min-confidence", type=float, default=0.75, help="minimum confidence")
 ap.add_argument("-w", "--width", type=int, default=320, help="nearest multiple of 32 for re-sized width")
 ap.add_argument("-e", "--height", type=int, default=320, help="nearest multiple of 32 for re-sized height")
-ap.add_argument("-p", "--padding", type=float, default=0.01, help="amount of padding to add to each border of ROI")
+ap.add_argument("-p", "--padding", type=float, default=0.2, help="amount of padding to add to each border of ROI")
 ap.add_argument("-l", "--lang", type=str, help="Language", default='eng')
 ap.add_argument("-t", "--thresh", type=float, help="Threshold", default=0.3)
 args = vars(ap.parse_args())
@@ -141,14 +141,30 @@ def recognize(image):
 		text = max([tess(roi_white), tess(roi_black)], key=lambda x: x[1])[0]
 		if text:
 			print(text)
-			plt.imshow(roi_white, 'gray')
-			plt.show()
+			# plt.imshow(roi_white, 'gray')
+			# plt.show()
 			results.append(((start_x, start_y, end_x, end_y), text))
 
 	# plt.imshow(image, 'gray')
 	# plt.show()
 
 	return results
+
+
+def process(image):
+	orig = image.copy()
+	if process.count == 0:
+		process.results = recognize(image)
+
+	for (start_x, start_y, end_x, end_y), text in process.results:
+		cv2.putText(orig, text, (start_x, start_y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+		cv2.rectangle(orig, (start_x, start_y), (end_x, end_y), (0, 255, 0), 2)
+	process.count = (process.count + 1) % 15
+	return orig
+
+
+process.count = 0
+process.results = []
 
 
 def __main__():
