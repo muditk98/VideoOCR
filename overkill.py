@@ -61,7 +61,7 @@ def tess(image):
 
 def decode_predictions(scores, geometry):
 	(num_rows, num_cols) = scores.shape[2:4]
-	rects = []
+	rectangles = []
 	confidences = []
 
 	for y in range(num_rows):
@@ -90,10 +90,10 @@ def decode_predictions(scores, geometry):
 			start_x = int(end_x - w)
 			start_y = int(end_y - h)
 
-			rects.append((start_x, start_y, end_x, end_y))
+			rectangles.append((start_x, start_y, end_x, end_y))
 			confidences.append(scores_data[x])
 
-	return rects, confidences
+	return rectangles, confidences
 
 
 ap = argparse.ArgumentParser()
@@ -174,13 +174,13 @@ def __main__():
 		end_y = min(origH, end_y + (d_y * 2))
 
 		roi = orig[start_y:end_y, start_x:end_x]
-		threshold_images = apply_thresholds(roi)
+		threshold_images, titles = apply_thresholds(roi)
 		for i in range(len(threshold_images)):
 			img = tess(threshold_images[i])
 			# plt.subplot(3,4,i+1)
 			plt.imshow(img)
+			plt.title(titles[i])
 			plt.show()
-			# plt.title(titles[i])
 			# plt.xticks([]), plt.yticks([])
 			print('-' * 10)
 
